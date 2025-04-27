@@ -1,11 +1,25 @@
 #!/bin/bash
 
+# Charger les variables d'environnement
+if [ -f "../.env" ]; then
+    source ../.env
+else
+    echo "Fichier .env non trouvé. Utilisation des valeurs par défaut."
+    # Valeurs par défaut
+    DATA_DIR="/opt/data"
+    ADMIN_DIR="/opt/admin"
+    BACKUP_DIR="/opt/backup"
+    CONFIG_DIR="/opt/config"
+    POSTGRES_DB="n8n"
+    POSTGRES_USER="n8nuser"
+fi
+
 # Configuration
-BACKUP_DIR="/sata/backup/n8n"
-DOCKER_COMPOSE_DIR="/sata/docker_build/n8n"
+BACKUP_DIR="${BACKUP_DIR}/n8n"
+DOCKER_COMPOSE_DIR="${CONFIG_DIR}/n8n"
 CONTAINER_NAME="n8n-DB"
-DB_NAME="n8n"
-DB_USER="n8nuserdb"
+DB_NAME="${POSTGRES_DB}"
+DB_USER="${POSTGRES_USER}"
 RETENTION_DAYS=30
 
 # Création du nom de fichier avec la date (ajout des secondes)
@@ -14,7 +28,8 @@ BACKUP_FILE="${BACKUP_DIR}/${TIMESTAMP}_n8n_db_postgres"
 
 # Fonction de log
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> /sata/admin/logs/n8n_backup_db.log
+    mkdir -p "${ADMIN_DIR}/logs"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "${ADMIN_DIR}/logs/n8n_backup_db.log"
     echo "$1"
 }
 

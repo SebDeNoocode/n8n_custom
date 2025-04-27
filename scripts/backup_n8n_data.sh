@@ -1,8 +1,20 @@
 #!/bin/bash
 
+# Charger les variables d'environnement
+if [ -f "../.env" ]; then
+    source ../.env
+else
+    echo "Fichier .env non trouvé. Utilisation des valeurs par défaut."
+    # Valeurs par défaut
+    DATA_DIR="/opt/data"
+    ADMIN_DIR="/opt/admin"
+    BACKUP_DIR="/opt/backup"
+    CONFIG_DIR="/opt/config"
+fi
+
 # Configuration
-BACKUP_DIR="/sata/backup/n8n"
-DATA_DIR="/sata/dk/n8n"
+BACKUP_DIR="${BACKUP_DIR}/n8n"
+N8N_DATA_DIR="${DATA_DIR}/n8n"
 RETENTION_DAYS=10
 
 # Création du nom de fichier avec la date (ajout des secondes)
@@ -11,7 +23,8 @@ BACKUP_FILE="${BACKUP_DIR}/${TIMESTAMP}_n8n_data"
 
 # Fonction de log
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> /sata/admin/logs/n8n_backup_data.log
+    mkdir -p "${ADMIN_DIR}/logs"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "${ADMIN_DIR}/logs/n8n_backup_data.log"
     echo "$1"
 }
 
@@ -25,7 +38,7 @@ fi
 log_message "Démarrage du backup des données n8n..."
 
 # Création d'une archive des données
-cd /sata/dk && zip -r "${BACKUP_FILE}.zip" n8n/
+cd "${DATA_DIR}" && zip -r "${BACKUP_FILE}.zip" n8n/
 
 if [ $? -eq 0 ]; then
     # Nettoyage des anciens backups

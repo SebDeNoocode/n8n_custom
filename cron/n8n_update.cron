@@ -1,2 +1,2 @@
 # Exécuter la mise à jour de n8n tous les dimanches à 3h du matin
-0 3 * * 0 /sata/admin/scripts/update_n8n.sh >> /sata/admin/logs/n8n_update.log 2>&1
+0 3 * * 0 ${ADMIN_DIR}/scripts/update_n8n.sh >> ${ADMIN_DIR}/logs/n8n_update.log 2>&1

@@ -38,45 +38,128 @@ if ! command -v docker compose &> /dev/null; then
     error "Docker Compose n'est pas installé. Veuillez installer Docker Compose avant de continuer."
 fi
 
+# Demander les chemins d'installation
+log "Configuration des chemins d'installation..."
+read -p "Chemin pour les données (par défaut: /opt/data): " DATA_DIR
+DATA_DIR=${DATA_DIR:-/opt/data}
+
+read -p "Chemin pour les scripts admin (par défaut: /opt/admin): " ADMIN_DIR
+ADMIN_DIR=${ADMIN_DIR:-/opt/admin}
+
+read -p "Chemin pour les backups (par défaut: /opt/backup): " BACKUP_DIR
+BACKUP_DIR=${BACKUP_DIR:-/opt/backup}
+
+read -p "Chemin pour les configurations (par défaut: /opt/config): " CONFIG_DIR
+CONFIG_DIR=${CONFIG_DIR:-/opt/config}
+
+# Demander les informations de base de données
+log "Configuration de la base de données..."
+read -p "Nom de la base de données (par défaut: n8n): " POSTGRES_DB
+POSTGRES_DB=${POSTGRES_DB:-n8n}
+
+read -p "Utilisateur de la base de données (par défaut: n8nuser): " POSTGRES_USER
+POSTGRES_USER=${POSTGRES_USER:-n8nuser}
+
+read -p "Mot de passe de la base de données (par défaut: généré aléatoirement): " POSTGRES_PASSWORD
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$(openssl rand -base64 12)}
+
+# Demander les informations d'authentification n8n
+log "Configuration de l'authentification n8n..."
+read -p "Utilisateur n8n (par défaut: admin): " N8N_BASIC_AUTH_USER
+N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+
+read -p "Mot de passe n8n (par défaut: généré aléatoirement): " N8N_BASIC_AUTH_PASSWORD
+N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-$(openssl rand -base64 12)}
+
+read -p "Nom d'hôte n8n (par défaut: localhost): " N8N_HOST
+N8N_HOST=${N8N_HOST:-localhost}
+
+read -p "Port n8n (par défaut: 5678): " N8N_PORT
+N8N_PORT=${N8N_PORT:-5678}
+
+read -p "Protocole n8n (http/https) (par défaut: http): " N8N_PROTOCOL
+N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+
+# Créer le fichier .env
+log "Création du fichier .env..."
+cat > .env << EOL
+# Chemins de base pour l'installation
+DATA_DIR=${DATA_DIR}
+ADMIN_DIR=${ADMIN_DIR}
+BACKUP_DIR=${BACKUP_DIR}
+CONFIG_DIR=${CONFIG_DIR}
+
+# Configuration PostgreSQL
+POSTGRES_DB=${POSTGRES_DB}
+POSTGRES_USER=${POSTGRES_USER}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+# Configuration n8n
+N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+N8N_HOST=${N8N_HOST}
+N8N_PORT=${N8N_PORT}
+N8N_PROTOCOL=${N8N_PROTOCOL}
+WEBHOOK_URL=${N8N_PROTOCOL}://${N8N_HOST}:${N8N_PORT}
+N8N_EDITOR_BASE_URL=${N8N_PROTOCOL}://${N8N_HOST}:${N8N_PORT}
+
+# Fuseaux horaires
+TIMEZONE=Europe/Paris
+EOL
+
 # Créer les répertoires nécessaires
 log "Création des répertoires pour les données persistantes..."
-mkdir -p /sata/dk/n8n/{db,data,files}
-mkdir -p /sata/admin/{scripts,cron,logs}
-mkdir -p /sata/backup/n8n
+mkdir -p ${DATA_DIR}/n8n/{db,data,files}
+mkdir -p ${ADMIN_DIR}/{scripts,cron,logs}
+mkdir -p ${BACKUP_DIR}/n8n
+mkdir -p ${CONFIG_DIR}/n8n
+
+# Copier le fichier docker-compose.yml vers le répertoire de configuration
+cp -r docker ${CONFIG_DIR}/n8n/
 
 # Configurer les permissions pour PostgreSQL
 log "Configuration des permissions pour PostgreSQL..."
-chown -R 999:999 /sata/dk/n8n/db
+chown -R 999:999 ${DATA_DIR}/n8n/db
 
 # Copier les scripts
 log "Copie des scripts de maintenance..."
-cp scripts/update_n8n.sh /sata/admin/scripts/
-cp scripts/backup_n8n_db.sh /sata/admin/scripts/
-cp scripts/backup_n8n_data.sh /sata/admin/scripts/
-chmod +x /sata/admin/scripts/*.sh
+cp scripts/update_n8n.sh ${ADMIN_DIR}/scripts/
+cp scripts/backup_n8n_db.sh ${ADMIN_DIR}/scripts/
+cp scripts/backup_n8n_data.sh ${ADMIN_DIR}/scripts/
+chmod +x ${ADMIN_DIR}/scripts/*.sh
 
-# Copier les fichiers cron
-log "Copie des fichiers cron..."
-cp cron/n8n_update.cron /sata/admin/cron/
-cp cron/n8n_backup_db.cron /sata/admin/cron/
-cp cron/n8n_backup_data.cron /sata/admin/cron/
+# Copier les fichiers cron et les adapter
+log "Copie et adaptation des fichiers cron..."
+for file in cron/*; do
+    dest_file=${ADMIN_DIR}/cron/$(basename $file)
+    cp $file $dest_file
+    # Remplacer les variables dans les fichiers cron
+    sed -i "s|\${ADMIN_DIR}|${ADMIN_DIR}|g" $dest_file
+done
 
 # Ajouter les tâches au crontab système
 log "Configuration des tâches cron..."
-(crontab -l 2>/dev/null; cat cron/*) | crontab -
+(crontab -l 2>/dev/null; cat ${ADMIN_DIR}/cron/*) | crontab -
 
 # Démarrer les conteneurs
 log "Démarrage des conteneurs Docker..."
-cd docker
+cd ${CONFIG_DIR}/n8n/docker
+
+# Exporter les variables d'environnement pour docker-compose
+set -a
+source ../../.env
+set +a
+
 docker compose up -d
 
 if [ $? -eq 0 ]; then
     log "Installation terminée avec succès !"
-    log "n8n est accessible à l'adresse : http://localhost:5678"
-    log "Utilisateur par défaut : user_n8n"
-    log "Mot de passe par défaut : Voir dans docker-compose.yml (N8N_BASIC_AUTH_PASSWORD)"
-    log "Les backups seront stockés dans /sata/backup/n8n/"
-    log "Les logs de maintenance sont dans /sata/admin/logs/"
+    log "n8n est accessible à l'adresse : ${N8N_PROTOCOL}://${N8N_HOST}:${N8N_PORT}"
+    log "Utilisateur : ${N8N_BASIC_AUTH_USER}"
+    log "Mot de passe : ${N8N_BASIC_AUTH_PASSWORD}"
+    log "Les backups seront stockés dans ${BACKUP_DIR}/n8n/"
+    log "Les logs de maintenance sont dans ${ADMIN_DIR}/logs/"
+    log "Configuration enregistrée dans ${CONFIG_DIR}/.env"
 else
     error "Échec du démarrage des conteneurs Docker. Veuillez vérifier les logs."
 fi

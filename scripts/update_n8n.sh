@@ -1,7 +1,19 @@
 #!/bin/bash
 
+# Charger les variables d'environnement
+if [ -f "../.env" ]; then
+    source ../.env
+else
+    echo "Fichier .env non trouvé. Utilisation des valeurs par défaut."
+    # Valeurs par défaut
+    DATA_DIR="/opt/data"
+    ADMIN_DIR="/opt/admin"
+    BACKUP_DIR="/opt/backup"
+    CONFIG_DIR="/opt/config"
+fi
+
 # Chemin vers le docker-compose.yml
-COMPOSE_FILE="/sata/docker_build/n8n/docker-compose.yml"
+COMPOSE_FILE="${CONFIG_DIR}/n8n/docker/docker-compose.yml"
 
 # Fonction pour extraire la version actuelle du docker-compose.yml
 get_current_version() {
