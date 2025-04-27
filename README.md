@@ -64,24 +64,29 @@ Pour installer cette configuration n8n sur votre serveur, suivez ces étapes :
 4. Accédez à n8n via votre navigateur à l'adresse configurée (par défaut : `http://localhost:5678`)
    ```
 
-5. Configurer les tâches cron pour les mises à jour et backups automatiques :
+5. Les tâches cron pour les mises à jour et backups automatiques sont configurées automatiquement par le script d'installation. Si vous souhaitez les configurer manuellement :
    ```bash
-   # Copier les scripts dans /sata/admin/scripts/
-   sudo mkdir -p /sata/admin/scripts
-   sudo cp ../scripts/* /sata/admin/scripts/
-   sudo chmod +x /sata/admin/scripts/*.sh
+   # Copier les scripts dans ${ADMIN_DIR}/scripts/
+   sudo mkdir -p ${ADMIN_DIR}/scripts
+   sudo cp scripts/* ${ADMIN_DIR}/scripts/
+   sudo chmod +x ${ADMIN_DIR}/scripts/*.sh
    
    # Configurer les tâches cron
-   sudo mkdir -p /sata/admin/cron
-   sudo cp ../cron/* /sata/admin/cron/
+   sudo mkdir -p ${ADMIN_DIR}/cron
+   sudo cp cron/* ${ADMIN_DIR}/cron/
+   
+   # Remplacer les variables dans les fichiers cron
+   for file in ${ADMIN_DIR}/cron/*; do
+       sed -i "s|\${ADMIN_DIR}|${ADMIN_DIR}|g" $file
+   done
    
    # Ajouter les tâches au crontab système
-   (sudo crontab -l 2>/dev/null; cat ../cron/*) | sudo crontab -
+   (sudo crontab -l 2>/dev/null; cat ${ADMIN_DIR}/cron/*) | sudo crontab -
    ```
 
-6. Créer les répertoires pour les backups :
+6. Les répertoires pour les backups sont créés automatiquement par le script d'installation. Si vous souhaitez les créer manuellement :
    ```bash
-   sudo mkdir -p /sata/backup/n8n
+   sudo mkdir -p ${BACKUP_DIR}/n8n
    ```
 
 ## Configuration
