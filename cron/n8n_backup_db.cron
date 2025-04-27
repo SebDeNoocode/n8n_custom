@@ -1,0 +1,2 @@
+# Backup quotidien de la base de données n8n à 4h du matin
+0 4 * * * /sata/admin/scripts/backup_n8n_db.sh >> /sata/admin/logs/n8n_backup_db.log 2>&1
