@@ -134,7 +134,25 @@ Vous pouvez personnaliser cette configuration en modifiant les fichiers suivants
 
 ### Mises à jour automatiques
 
-Le script `update_n8n.sh` vérifie la dernière version de n8n disponible sur GitHub et met à jour le conteneur si une nouvelle version est disponible. Par défaut, il s'exécute tous les dimanches à 3h du matin.
+Le script `update_n8n.sh` vérifie la dernière version de n8n disponible sur GitHub et met à jour le conteneur si une nouvelle version est disponible. Par défaut, il s'exécute tous les jours à 3h du matin.
+
+#### Fonctionnalités avancées du script de mise à jour
+
+1. **Sécurité des mises à jour**
+   - Sauvegarde automatique de la base de données avant la mise à jour
+   - Sauvegarde automatique des données n8n avant la mise à jour
+   - Sauvegarde datée du fichier docker-compose.yml
+
+2. **Vérification de santé**
+   - Après la mise à jour, vérifie que l'application répond correctement
+   - Effectue plusieurs tentatives avec délai entre chaque (10 tentatives par défaut)
+   - Vérifie l'endpoint de santé `/healthz` pour s'assurer que n8n fonctionne
+
+3. **Rollback automatique**
+   - En cas d'échec de la mise à jour, restaure automatiquement la version précédente
+   - Redémarre les conteneurs avec l'ancienne version
+   - Vérifie la santé après restauration
+   - Journalisation détaillée de toutes les étapes
 
 Pour exécuter une mise à jour manuelle :
 ```bash
